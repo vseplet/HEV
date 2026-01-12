@@ -1,4 +1,6 @@
 {
+  "name": "@vseplet/hev",
+  "version": "0.1.0",
   "lock": false,
   "imports": {
     "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.7",
