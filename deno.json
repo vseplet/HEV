@@ -4,6 +4,8 @@
   "lock": false,
   "imports": {
     "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.7",
+    "@std/path": "jsr:@std/path@1.0.8",
+    "@std/assert": "jsr:@std/assert@1",
     "hono": "jsr:@hono/hono@4.6.20",
     "@/shared/": "./src/shared/",
     "@/daemon/": "./src/daemon/",
@@ -15,7 +17,8 @@
     "fmt": "deno fmt",
     "fmt:check": "deno fmt --check",
     "lint": "deno lint",
-    "check": "deno check src/**/*.ts"
+    "check": "deno check src/**/*.ts tests/**/*.ts",
+    "test": "deno test --allow-all tests/"
   },
   "fmt": {
     "exclude": ["*.md", "deno.json"]

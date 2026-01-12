@@ -1,8 +1,8 @@
 # HEV - План разработки
 
-## Текущий статус: MVP
+## Текущий статус: Фаза 1 (в процессе)
 
-Базовая реализация CLI + daemon с HTTP API.
+CLI + daemon с управлением процессами.
 
 ## Архитектура
 
@@ -18,16 +18,19 @@
 - [x] CLI с командами `up` / `down`
 - [x] Daemon с HTTP API (hono)
 - [x] Автозапуск демона из CLI
-- [x] GitHub Actions CI (fmt, lint, check)
+- [x] GitHub Actions CI (fmt, lint, check, test)
 - [x] Import maps в deno.json
+- [x] Команда `hev start <script>` — запуск процесса
+- [x] Команда `hev stop <id>` — остановка процесса
+- [x] Команда `hev restart <id>` — перезапуск процесса
+- [x] Команда `hev list` — список процессов
+- [x] Авторестарт упавших процессов (мониторинг через ps)
+- [x] Unit тесты для процессов
 
 ## В планах
 
-### Фаза 1: Управление процессами
-- [ ] Команда `hev start <script>` — запуск процесса под управлением
-- [ ] Команда `hev stop <name|id>` — остановка процесса
-- [ ] Команда `hev list` — список управляемых процессов
-- [ ] Команда `hev logs <name|id>` — просмотр логов
+### Фаза 1: Управление процессами (осталось)
+- [ ] Команда `hev logs <id>` — просмотр логов
 - [ ] Хранение состояния процессов в Deno KV
 
 ### Фаза 2: Системные службы
@@ -37,7 +40,6 @@
 - [ ] Команда `hev uninstall` — удаление системной службы
 
 ### Фаза 3: Дополнительные функции
-- [ ] Автоперезапуск упавших процессов
 - [ ] Мониторинг ресурсов (CPU, RAM)
 - [ ] Web UI для управления
 - [ ] Кластерный режим
@@ -52,11 +54,42 @@ src/
 │   ├── mod.ts             # Главный CLI модуль
 │   └── commands/
 │       ├── up.ts          # hev up
-│       └── down.ts        # hev down
+│       ├── down.ts        # hev down
+│       ├── start.ts       # hev start
+│       ├── stop.ts        # hev stop
+│       ├── restart.ts     # hev restart
+│       └── list.ts        # hev list
 ├── daemon/
 │   ├── mod.ts             # HTTP сервер
-│   └── api.ts             # API endpoints
+│   ├── api.ts             # API endpoints
+│   └── processes.ts       # Управление процессами
 └── shared/
     ├── config.ts          # Конфигурация
     └── client.ts          # HTTP клиент
+tests/
+└── processes_test.ts      # Тесты процессов
 ```
+
+## CLI команды
+
+| Команда | Описание |
+|---------|----------|
+| `hev up` | Запустить демон |
+| `hev down` | Остановить демон |
+| `hev start <script>` | Запустить процесс |
+| `hev stop <id>` | Остановить процесс |
+| `hev restart <id>` | Перезапустить процесс |
+| `hev list` | Список процессов |
+
+## API демона
+
+| Endpoint | Метод | Описание |
+|----------|-------|----------|
+| `/health` | GET | Статус демона |
+| `/shutdown` | POST | Остановка демона |
+| `/processes` | GET | Список процессов |
+| `/processes` | POST | Запуск процесса |
+| `/processes/:id` | GET | Информация о процессе |
+| `/processes/:id/stop` | POST | Остановка процесса |
+| `/processes/:id/restart` | POST | Перезапуск процесса |
+| `/processes/:id` | DELETE | Удаление процесса |

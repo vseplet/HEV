@@ -4,9 +4,10 @@ Simple process manager for Deno applications, inspired by pm2.
 
 ## Features
 
-- CLI for daemon management
-- HTTP API for communication
-- Auto-start daemon when needed
+- Start/stop/restart processes
+- Auto-restart on crash
+- Process monitoring via `ps`
+- HTTP API for daemon communication
 - Works on macOS and Linux
 
 ## Installation
@@ -15,63 +16,62 @@ Simple process manager for Deno applications, inspired by pm2.
 curl -fsSL https://raw.githubusercontent.com/vseplet/HEV/main/install.sh | bash
 ```
 
-Or install manually with Deno:
-
-```bash
-deno install --allow-all --global --name hev https://raw.githubusercontent.com/vseplet/HEV/main/src/cli.ts
-```
-
 ## Usage
 
-### Start daemon
-
 ```bash
+# Start daemon
 hev up
-```
 
-### Stop daemon
+# Start a process
+hev start app.ts
+hev start app.ts -n myapp
 
-```bash
+# List processes
+hev list
+
+# Stop/restart process
+hev stop 0
+hev restart 0
+
+# Stop daemon
 hev down
 ```
 
-### Show help
+## CLI Commands
 
-```bash
-hev --help
-```
+| Command | Description |
+|---------|-------------|
+| `hev up` | Start daemon |
+| `hev down` | Stop daemon |
+| `hev start <script>` | Start a process |
+| `hev stop <id>` | Stop a process |
+| `hev restart <id>` | Restart a process |
+| `hev list` | List all processes |
 
 ## Development
 
 ```bash
-# Clone repository
 git clone https://github.com/vseplet/HEV.git
 cd HEV
 
-# Run CLI
-deno task cli
-
-# Run daemon directly
-deno task daemon
-
-# Check code
-deno task fmt:check
-deno task lint
-deno task check
+deno task cli        # Run CLI
+deno task daemon     # Run daemon
+deno task test       # Run tests
+deno task check      # Type check
 ```
 
 ## API
 
-When daemon is running on `http://127.0.0.1:9876`:
+Daemon runs on `http://127.0.0.1:9876`
 
-| Endpoint    | Method | Description          |
-| ----------- | ------ | -------------------- |
-| `/health`   | GET    | Check daemon status  |
-| `/shutdown` | POST   | Shutdown daemon      |
-
-## Roadmap
-
-See [PLAN.md](PLAN.md) for development roadmap.
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/health` | GET | Daemon status |
+| `/shutdown` | POST | Stop daemon |
+| `/processes` | GET | List processes |
+| `/processes` | POST | Start process |
+| `/processes/:id/stop` | POST | Stop process |
+| `/processes/:id/restart` | POST | Restart process |
 
 ## License
 
