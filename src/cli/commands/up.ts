@@ -13,53 +13,32 @@ async function spawnDaemon(
   const daemonUrl = new URL("../../daemon.ts", import.meta.url).href;
   const importMapUrl = new URL("../../../deno.json", import.meta.url).href;
 
-  const command = new Deno.Command(Deno.execPath(), {
-    args: ["run", "--allow-all", `--import-map=${importMapUrl}`, daemonUrl],
-    env: { HEV_PORT: String(port) },
+  const denoPath = Deno.execPath();
+  const shellCmd =
+    `HEV_PORT=${port} nohup "${denoPath}" run --allow-all --import-map="${importMapUrl}" "${daemonUrl}" > /dev/null 2>&1 &`;
+
+  const command = new Deno.Command("sh", {
+    args: ["-c", shellCmd],
     stdin: "null",
-    stdout: "piped",
-    stderr: "piped",
+    stdout: "null",
+    stderr: "null",
   });
 
-  const process = command.spawn();
+  const { code } = await command.output();
+  if (code !== 0) {
+    return { success: false, error: "Failed to spawn daemon process" };
+  }
 
-  let stderrOutput = "";
-  (async () => {
-    const reader = process.stderr.getReader();
-    try {
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        stderrOutput += new TextDecoder().decode(value);
-      }
-    } catch {
-      // ignore
-    }
-  })();
+  // Wait for daemon to become responsive
+  for (let i = 0; i < 30; i++) {
+    await new Promise((r) => setTimeout(r, 200));
 
-  for (let i = 0; i < 20; i++) {
-    await new Promise((r) => setTimeout(r, 150));
-
-    if (await isDaemonRunning()) {
-      process.unref();
+    if (await isDaemonRunning(port)) {
       return { success: true };
-    }
-
-    const status = await Promise.race([
-      process.status.then((s) => s),
-      new Promise<null>((r) => setTimeout(() => r(null), 50)),
-    ]);
-
-    if (status !== null && !status.success) {
-      return {
-        success: false,
-        error: stderrOutput || `Exit code: ${status.code}`,
-      };
     }
   }
 
-  process.unref();
-  return { success: false, error: stderrOutput || "Timeout waiting for daemon" };
+  return { success: false, error: "Timeout waiting for daemon to start" };
 }
 
 export const upCommand = new Command()

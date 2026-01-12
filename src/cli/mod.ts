@@ -5,6 +5,7 @@ import { startCommand } from "@/cli/commands/start.ts";
 import { stopCommand } from "@/cli/commands/stop.ts";
 import { listCommand } from "@/cli/commands/list.ts";
 import { restartCommand } from "@/cli/commands/restart.ts";
+import { dashCommand } from "@/cli/commands/dash.ts";
 
 export const cli = new Command()
   .name("hev")
@@ -18,4 +19,5 @@ export const cli = new Command()
   .command("start", startCommand)
   .command("stop", stopCommand)
   .command("restart", restartCommand)
-  .command("list", listCommand);
+  .command("list", listCommand)
+  .command("dash", dashCommand);

@@ -1,4 +1,4 @@
-import { DAEMON_URL } from "@/shared/config.ts";
+import { DAEMON_HOST, DAEMON_URL } from "@/shared/config.ts";
 
 export interface ProcessInfo {
   id: string;
@@ -11,9 +11,12 @@ export interface ProcessInfo {
   cwd: string;
 }
 
-export async function isDaemonRunning(): Promise<boolean> {
+export async function isDaemonRunning(port?: number): Promise<boolean> {
   try {
-    const response = await fetch(`${DAEMON_URL}/health`, {
+    const url = port
+      ? `http://${DAEMON_HOST}:${port}/health`
+      : `${DAEMON_URL}/health`;
+    const response = await fetch(url, {
       signal: AbortSignal.timeout(1000),
     });
     return response.ok;
