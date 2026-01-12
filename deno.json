@@ -1,3 +1,24 @@
 {
-  "lock": false
+  "lock": false,
+  "imports": {
+    "@cliffy/command": "jsr:@cliffy/command@1.0.0-rc.7",
+    "hono": "jsr:@hono/hono@4.6.20",
+    "@/shared/": "./src/shared/",
+    "@/daemon/": "./src/daemon/",
+    "@/cli/": "./src/cli/"
+  },
+  "tasks": {
+    "cli": "deno run --allow-all src/cli.ts",
+    "daemon": "deno run --allow-all src/daemon.ts",
+    "fmt": "deno fmt",
+    "fmt:check": "deno fmt --check",
+    "lint": "deno lint",
+    "check": "deno check src/**/*.ts"
+  },
+  "fmt": {
+    "exclude": ["*.md", "deno.json"]
+  },
+  "lint": {
+    "exclude": ["*.md", "deno.json"]
+  }
 }
