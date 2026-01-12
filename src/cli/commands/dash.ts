@@ -282,16 +282,23 @@ function formatLogTime(timestamp: number): string {
 
 function renderLogs(logs: LogEntry[]): MorphTemplate {
   if (logs.length === 0) {
-    return html`<div style="color: #6e7681;">No logs yet</div>`;
+    return html`
+      <div style="color: #6e7681;">No logs yet</div>
+    `;
   }
 
   return html`
     ${logs.map(
-      (log) => html`
-        <div class="${logLineStyles} ${log.type === "stderr" ? logStderrStyles : logStdoutStyles}">
-          <span class="${logTimestampStyles}">${formatLogTime(log.timestamp)}</span>${log.text}
-        </div>
-      `,
+      (log) =>
+        html`
+          <div class="${logLineStyles} ${log.type === "stderr"
+            ? logStderrStyles
+            : logStdoutStyles}">
+            <span class="${logTimestampStyles}">${formatLogTime(
+              log.timestamp,
+            )}</span>${log.text}
+          </div>
+        `,
     )}
   `;
 }
@@ -343,7 +350,8 @@ const processApi = rpc({
     }
     const processes = await listProcesses();
     return html`
-      <div class="${successStyles}">Process "${result.name}" started (PID: ${result.pid})</div>
+      <div class="${successStyles}">Process "${result
+        .name}" started (PID: ${result.pid})</div>
       ${renderProcessTable(processes)}
     `;
   },
@@ -402,76 +410,86 @@ function renderProcessTable(processes: ProcessInfo[]): MorphTemplate {
   }
 
   const rows = processes.map(
-    (p) => html`
-      <tr class="${processRowStyles}">
-        <td class="${tdStyles} ${monoStyles}">${p.id.slice(0, 8)}</td>
-        <td class="${tdStyles}">${p.name}</td>
-        <td class="${tdStyles} ${monoStyles}">${p.script}</td>
-        <td class="${tdStyles}">${p.pid}</td>
-        <td class="${tdStyles}">
-          <span class="${getStatusStyle(p.status)}">${p.status}</span>
-        </td>
-        <td class="${tdStyles}">${formatUptime(p.startedAt)}</td>
-        <td class="${tdStyles}">${p.restarts}</td>
-        <td class="${tdStyles}">
-          ${
-            p.status === "running"
+    (p) =>
+      html`
+        <tr class="${processRowStyles}">
+          <td class="${tdStyles} ${monoStyles}">${p.id.slice(0, 8)}</td>
+          <td class="${tdStyles}">${p.name}</td>
+          <td class="${tdStyles} ${monoStyles}">${p.script}</td>
+          <td class="${tdStyles}">${p.pid}</td>
+          <td class="${tdStyles}">
+            <span class="${getStatusStyle(p.status)}">${p.status}</span>
+          </td>
+          <td class="${tdStyles}">${formatUptime(p.startedAt)}</td>
+          <td class="${tdStyles}">${p.restarts}</td>
+          <td class="${tdStyles}">
+            ${p.status === "running"
               ? html`
-              <button
-                class="${btnStyles}"
-                ${processApi.rpc.stop()}
-                hx-vals='{"id": "${p.id}"}'
-                hx-target="#processes-container"
-                hx-swap="innerHTML"
-              >Stop</button>
-            `
+                <button
+                  class="${btnStyles}"
+                  ${processApi.rpc.stop()}
+                  hx-vals='{"id": "${p.id}"}'
+                  hx-target="#processes-container"
+                  hx-swap="innerHTML"
+                >
+                  Stop
+                </button>
+              `
               : html`
-              <button
-                class="${btnStyles}"
-                ${processApi.rpc.restart()}
-                hx-vals='{"id": "${p.id}"}'
-                hx-target="#processes-container"
-                hx-swap="innerHTML"
-              >Start</button>
-            `
-          }
-          <button
-            class="${btnStyles}"
-            ${processApi.rpc.restart()}
-            hx-vals='{"id": "${p.id}"}'
-            hx-target="#processes-container"
-            hx-swap="innerHTML"
-          >Restart</button>
-          <button
-            class="${btnDangerStyles}"
-            ${processApi.rpc.delete()}
-            hx-vals='{"id": "${p.id}"}'
-            hx-target="#processes-container"
-            hx-swap="innerHTML"
-            hx-confirm="Delete process '${p.name}'?"
-          >Delete</button>
-          <button
-            class="${expandBtnStyles}"
-            onclick="document.getElementById('logs-${p.id}').classList.toggle('hidden')"
-            ${logsApi.rpc.get()}
-            hx-vals='{"id": "${p.id}"}'
-            hx-target="#logs-${p.id}"
-            hx-swap="innerHTML"
-            hx-trigger="click once"
-          >Logs</button>
-        </td>
-      </tr>
-      <tr id="logs-${p.id}" class="hidden">
-        <td colspan="8" style="padding: 0 12px 12px 12px;">
-          <div style="color: #6e7681; padding: 12px;">Click to load logs...</div>
-        </td>
-      </tr>
-    `,
+                <button
+                  class="${btnStyles}"
+                  ${processApi.rpc.restart()}
+                  hx-vals='{"id": "${p.id}"}'
+                  hx-target="#processes-container"
+                  hx-swap="innerHTML"
+                >
+                  Start
+                </button>
+              `}
+            <button
+              class="${btnStyles}"
+              ${processApi.rpc.restart()}
+              hx-vals='{"id": "${p.id}"}'
+              hx-target="#processes-container"
+              hx-swap="innerHTML"
+            >
+              Restart
+            </button>
+            <button
+              class="${btnDangerStyles}"
+              ${processApi.rpc.delete()}
+              hx-vals='{"id": "${p.id}"}'
+              hx-target="#processes-container"
+              hx-swap="innerHTML"
+              hx-confirm="Delete process '${p.name}'?"
+            >
+              Delete
+            </button>
+            <button
+              class="${expandBtnStyles}"
+              onclick="document.getElementById('logs-${p
+                .id}').classList.toggle('hidden')"
+              ${logsApi.rpc.get()}
+              hx-vals='{"id": "${p.id}"}'
+              hx-target="#logs-${p.id}"
+              hx-swap="innerHTML"
+              hx-trigger="click once"
+            >
+              Logs
+            </button>
+          </td>
+        </tr>
+        <tr id="logs-${p.id}" class="hidden">
+          <td colspan="8" style="padding: 0 12px 12px 12px;">
+            <div style="color: #6e7681; padding: 12px;">Click to load logs...</div>
+          </td>
+        </tr>
+      `,
   );
 
   return html`
     <style>
-      .hidden { display: none; }
+    .hidden { display: none; }
     </style>
     <table class="${tableStyles}">
       <thead>
@@ -556,8 +574,7 @@ const homePage = component((): MorphTemplate => {
     <div class="${containerStyles}">
       <header class="${headerStyles}">
         <h1 class="${titleStyles}">
-          HEV Dashboard
-          ${daemonStatus({})}
+          HEV Dashboard ${daemonStatus({})}
         </h1>
         <div class="${monoStyles}" style="color: #8b949e;">
           ${DAEMON_HOST}:${DAEMON_PORT}
@@ -579,7 +596,12 @@ const homePage = component((): MorphTemplate => {
             Refresh
           </button>
         </div>
-        <div id="processes-container" hx-trigger="every 5s" ${processApi.rpc.list()} hx-swap="innerHTML">
+        <div
+          id="processes-container"
+          hx-trigger="every 5s"
+          ${processApi.rpc.list()}
+          hx-swap="innerHTML"
+        >
           ${processList({})}
         </div>
       </div>

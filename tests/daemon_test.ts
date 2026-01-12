@@ -1,5 +1,10 @@
 import { assertEquals } from "@std/assert";
-import { DAEMON_HOST, DAEMON_PORT, findFreePort, isPortFree } from "@/shared/config.ts";
+import {
+  DAEMON_HOST,
+  DAEMON_PORT,
+  findFreePort,
+  isPortFree,
+} from "@/shared/config.ts";
 
 Deno.test({
   name: "isPortFree returns true for unused port",
