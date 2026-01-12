@@ -8,7 +8,7 @@ import { restartCommand } from "@/cli/commands/restart.ts";
 
 export const cli = new Command()
   .name("hev")
-  .version("0.3.0")
+  .version("0.3.1")
   .description("Simple process manager")
   .action(function () {
     this.showHelp();
