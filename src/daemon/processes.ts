@@ -9,10 +9,19 @@ export interface ProcessInfo {
   cwd: string;
 }
 
+export interface LogEntry {
+  timestamp: number;
+  type: "stdout" | "stderr";
+  text: string;
+}
+
+const MAX_LOG_LINES = 1000;
+
 interface ManagedProcess {
   info: ProcessInfo;
   handle: Deno.ChildProcess;
   autoRestart: boolean;
+  logs: LogEntry[];
 }
 
 const processes = new Map<string, ManagedProcess>();
@@ -48,6 +57,42 @@ function spawnProcess(script: string, cwd: string): Deno.ChildProcess {
   return command.spawn();
 }
 
+function captureStream(
+  stream: ReadableStream<Uint8Array>,
+  logs: LogEntry[],
+  type: "stdout" | "stderr",
+): void {
+  const reader = stream.getReader();
+  const decoder = new TextDecoder();
+
+  (async () => {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        const lines = text.split("\n").filter((l) => l.length > 0);
+
+        for (const line of lines) {
+          logs.push({
+            timestamp: Date.now(),
+            type,
+            text: line,
+          });
+
+          // Trim old logs
+          while (logs.length > MAX_LOG_LINES) {
+            logs.shift();
+          }
+        }
+      }
+    } catch {
+      // Stream closed
+    }
+  })();
+}
+
 async function checkAndRestartProcesses(): Promise<void> {
   for (const [id, proc] of processes.entries()) {
     if (proc.info.status !== "running") continue;
@@ -62,6 +107,17 @@ async function checkAndRestartProcesses(): Promise<void> {
         proc.handle = newHandle;
         proc.info.pid = newHandle.pid;
         proc.info.status = "running";
+
+        // Capture logs for restarted process
+        captureStream(newHandle.stdout, proc.logs, "stdout");
+        captureStream(newHandle.stderr, proc.logs, "stderr");
+
+        proc.logs.push({
+          timestamp: Date.now(),
+          type: "stderr",
+          text: `[hev] Process restarted (restart #${proc.info.restarts})`,
+        });
+
         console.log(`[hev] Restarted process ${id} (${proc.info.name})`);
       } else {
         proc.info.status = "stopped";
@@ -93,6 +149,11 @@ export function startProcess(
   const workingDir = cwd || Deno.cwd();
 
   const handle = spawnProcess(script, workingDir);
+  const logs: LogEntry[] = [];
+
+  // Start capturing logs
+  captureStream(handle.stdout, logs, "stdout");
+  captureStream(handle.stderr, logs, "stderr");
 
   const info: ProcessInfo = {
     id,
@@ -105,7 +166,7 @@ export function startProcess(
     cwd: workingDir,
   };
 
-  const managed: ManagedProcess = { info, handle, autoRestart };
+  const managed: ManagedProcess = { info, handle, autoRestart, logs };
   processes.set(id, managed);
 
   // Start monitor if not running
@@ -187,5 +248,21 @@ export function restartProcess(id: string): ProcessInfo | null {
   proc.info.restarts++;
   proc.autoRestart = true;
 
+  // Capture logs for restarted process
+  captureStream(newHandle.stdout, proc.logs, "stdout");
+  captureStream(newHandle.stderr, proc.logs, "stderr");
+
+  proc.logs.push({
+    timestamp: Date.now(),
+    type: "stderr",
+    text: `[hev] Process manually restarted`,
+  });
+
   return proc.info;
+}
+
+export function getProcessLogs(id: string, limit = 100): LogEntry[] {
+  const proc = processes.get(id);
+  if (!proc) return [];
+  return proc.logs.slice(-limit);
 }

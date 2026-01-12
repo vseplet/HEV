@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import {
   getAllProcesses,
   getProcess,
+  getProcessLogs,
   removeProcess,
   restartProcess,
   startProcess,
@@ -76,6 +77,13 @@ export function createApp(shutdown: () => void): Hono {
     }
 
     return c.json({ status: "removed" });
+  });
+
+  app.get("/processes/:id/logs", (c) => {
+    const id = c.req.param("id");
+    const limit = parseInt(c.req.query("limit") || "100");
+    const logs = getProcessLogs(id, limit);
+    return c.json(logs);
   });
 
   return app;

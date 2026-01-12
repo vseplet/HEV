@@ -12,8 +12,10 @@ import {
 } from "@vseplet/morph";
 import {
   deleteProcessRequest,
+  getProcessLogs,
   isDaemonRunning,
   listProcesses,
+  type LogEntry,
   type ProcessInfo,
   restartProcessRequest,
   startProcessRequest,
@@ -216,6 +218,51 @@ const flexGrowStyles = styled`
   flex-grow: 1;
 `;
 
+const logsContainerStyles = styled`
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 12px;
+  margin-top: 8px;
+  max-height: 300px;
+  overflow-y: auto;
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 12px;
+`;
+
+const logLineStyles = styled`
+  padding: 2px 0;
+  white-space: pre-wrap;
+  word-break: break-all;
+`;
+
+const logStdoutStyles = styled`
+  color: #c9d1d9;
+`;
+
+const logStderrStyles = styled`
+  color: #f85149;
+`;
+
+const logTimestampStyles = styled`
+  color: #6e7681;
+  margin-right: 8px;
+`;
+
+const expandBtnStyles = styled`
+  background: transparent;
+  color: #58a6ff;
+  border: none;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 8px;
+  &:hover { text-decoration: underline; }
+`;
+
+const processRowStyles = styled`
+  border-bottom: 1px solid #21262d;
+`;
+
 // Helper functions
 function formatUptime(startedAt: number): string {
   const seconds = Math.floor((Date.now() - startedAt) / 1000);
@@ -226,6 +273,27 @@ function formatUptime(startedAt: number): string {
   if (hours < 24) return `${hours}h ${minutes % 60}m`;
   const days = Math.floor(hours / 24);
   return `${days}d ${hours % 24}h`;
+}
+
+function formatLogTime(timestamp: number): string {
+  const d = new Date(timestamp);
+  return d.toLocaleTimeString("en-US", { hour12: false });
+}
+
+function renderLogs(logs: LogEntry[]): MorphTemplate {
+  if (logs.length === 0) {
+    return html`<div style="color: #6e7681;">No logs yet</div>`;
+  }
+
+  return html`
+    ${logs.map(
+      (log) => html`
+        <div class="${logLineStyles} ${log.type === "stderr" ? logStderrStyles : logStdoutStyles}">
+          <span class="${logTimestampStyles}">${formatLogTime(log.timestamp)}</span>${log.text}
+        </div>
+      `,
+    )}
+  `;
 }
 
 function getStatusStyle(status: string): MorphCSS {
@@ -242,6 +310,17 @@ function getStatusStyle(status: string): MorphCSS {
 }
 
 // RPC handlers
+const logsApi = rpc({
+  get: async (_req, args: { id: string }): Promise<MorphTemplate> => {
+    const logs = await getProcessLogs(args.id, 200);
+    return html`
+      <div class="${logsContainerStyles}" id="logs-content-${args.id}">
+        ${renderLogs(logs)}
+      </div>
+    `;
+  },
+});
+
 const processApi = rpc({
   list: async (): Promise<MorphTemplate> => {
     const processes = await listProcesses();
@@ -324,7 +403,7 @@ function renderProcessTable(processes: ProcessInfo[]): MorphTemplate {
 
   const rows = processes.map(
     (p) => html`
-      <tr>
+      <tr class="${processRowStyles}">
         <td class="${tdStyles} ${monoStyles}">${p.id.slice(0, 8)}</td>
         <td class="${tdStyles}">${p.name}</td>
         <td class="${tdStyles} ${monoStyles}">${p.script}</td>
@@ -371,12 +450,29 @@ function renderProcessTable(processes: ProcessInfo[]): MorphTemplate {
             hx-swap="innerHTML"
             hx-confirm="Delete process '${p.name}'?"
           >Delete</button>
+          <button
+            class="${expandBtnStyles}"
+            onclick="document.getElementById('logs-${p.id}').classList.toggle('hidden')"
+            ${logsApi.rpc.get()}
+            hx-vals='{"id": "${p.id}"}'
+            hx-target="#logs-${p.id}"
+            hx-swap="innerHTML"
+            hx-trigger="click once"
+          >Logs</button>
+        </td>
+      </tr>
+      <tr id="logs-${p.id}" class="hidden">
+        <td colspan="8" style="padding: 0 12px 12px 12px;">
+          <div style="color: #6e7681; padding: 12px;">Click to load logs...</div>
         </td>
       </tr>
     `,
   );
 
   return html`
+    <style>
+      .hidden { display: none; }
+    </style>
     <table class="${tableStyles}">
       <thead>
         <tr>
@@ -496,6 +592,7 @@ function createApp() {
     layout: basic({ htmx: true, jsonEnc: true }),
   })
     .rpc(processApi)
+    .rpc(logsApi)
     .page("/", homePage);
 
   return morphApp.build();

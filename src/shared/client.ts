@@ -106,3 +106,27 @@ export async function deleteProcessRequest(id: string): Promise<boolean> {
     return false;
   }
 }
+
+export interface LogEntry {
+  timestamp: number;
+  type: "stdout" | "stderr";
+  text: string;
+}
+
+export async function getProcessLogs(
+  id: string,
+  limit = 100,
+): Promise<LogEntry[]> {
+  try {
+    const response = await fetch(
+      `${DAEMON_URL}/processes/${id}/logs?limit=${limit}`,
+      {
+        signal: AbortSignal.timeout(5000),
+      },
+    );
+    if (!response.ok) return [];
+    return await response.json();
+  } catch {
+    return [];
+  }
+}
